@@ -1,0 +1,143 @@
+# ===== Составляющие =====
+class Order():
+    def __init__(self, order_id, client_name, adress, price, delivery_method: DeliveryMethod, 
+                 courier, order_status):
+        self.order_id = order_id
+        self.client_name = client_name
+        self.adress = adress
+        self.price = price
+        self.order_status = order_status
+        self.items: List[Item] = []
+
+    def add_item(self, item: Item): 
+        self.item = item
+        self.item.name = input("Введите название товара: ")
+        self.item.price = float(input("Введите цену товара: "))
+        self.item.quantity = int(input("Введите количество товара: "))
+        self.price += self.item.price * self.item.quantity
+        self.items.append(item)
+
+    def print_order(self):
+        print(f"Заказ ID: {self.order_id}\n Клиент: {self.client_name}\n Адрес: {self.adress}\n\\
+        Доставка: {self.delivery_method.delivery_method}\n  Статус: {self.order_status}\n")
+        print("\nСписок товаров:\n")
+        for item in self.items:
+            print(f"Товар: {item.name}\n\tЦена: {item.price}\n\tКоличество: {item.quantity}\n")
+        print(f"Итоговая стоимость: {self.price}")
+
+
+
+
+class Client():
+    def __init__(self, client_id, name, adress):
+        self.client_id = client_id
+        self.name = name
+        self.adress = adress
+
+class Courier():
+    def __init__(self, courier_id, name):
+        self.courier_id = courier_id
+        self.name = name
+        self.is_busy = False
+
+class Item():
+    def __init__(self, name, price, quantity):
+        self.name = name
+        self.quantity = quantity
+        self.price = price
+
+class Adress(): 
+    def __init__(self, name, distant):
+        self.name = name
+        self.distant = distant # для вычисления на сколько умножить стоимость доставки
+
+
+# ===== Доставка ====== 
+class DeliveryMethod():
+    def __init__(self, delivery_method, service: OrderService, name):
+        self.delivery_method = delivery_method
+        self.service = service
+        self.name = name
+
+    def choose_method(self):
+        self.delivery_method = input("Введите способ доставки(номер): \n\\
+        1. Самовывоз\n2. Курьер\n3. Экспресс ")
+        if self.delivery_method == "1": self.name = "Самовывоз"
+        elif self.delivery_method == "2": self.name = "Курьер"
+        elif self.delivery_method == "3": self.name = "Экспресс"
+
+        if self.need_couier():
+            courier = None
+            self.assign_courier()
+                 
+    def need_courier(self):
+        if self.delivery_method == 2 or self.delivery_method == 3:
+            return True
+        return False
+
+    def assign_courier(self): 
+            for courier in self.service.couriers:
+                if not courier.is_busy:
+                    courier.is_busy = True
+                    print(f"Курьер {self.courier.name} назначен для доставки.")
+                    return courier
+            print("Нет доступных курьеров на данный момент.")
+            return None
+
+
+# ====== Сервисы ======
+class OrderService():
+    def __init__(self):
+        self.orders: List[Order] = [] # Список всех заказов
+        self.couriers: List[Courier] = [] # Добавить каких нибудь чувачков
+
+    def create_order(self): 
+        order_id = len(self.orders) + 1
+        self.orders[order_id-1].client_name = input("Введите имя клиента: ")
+        self.orders[order_id-1].adress = input("Введите адрес доставки: ")
+        # добавление вещей
+        item = Item("", 0, 0)
+        while True:
+            self.orders[order_id-1].add_item(item)
+            continue_adding = input("Хотите добавить еще один товар? (enter или no): ")
+            if continue_adding == "no":
+                break
+        
+        self.orders[order_id-1].order_status = "Создан"
+                 
+        
+        self.orders.append(order)
+        print(f"Заказ {order_id} создан.") 
+
+    def view_orders(self):
+        if not self.orders:
+            print("Нет заказов.")
+            return
+        for order in self.orders:
+            print(f"Заказ ID: {order.order_id}, Клиент: {order.client_name}, Адрес: {order.adress},\\
+           Статус: {order.order_status}"))
+
+    def count_price(self, order: Order):
+        total_price = sum(item.price * item.quantity for item in order.items)
+        return total_price
+
+# ====== Интрерфейс ======
+class Interface():
+    def __init__(self, service: OrderService):
+        self.service = service
+
+    def main(self):
+        while True:
+            print("1. Создать заказ")
+            print("2. Просмотреть заказы")
+            print("3. Выйти")
+            choice = input("Выберите действие: ")
+            if choice == "1":
+                self.service.create_order()
+            elif choice == "2":
+                self.service.view_orders()
+            elif choice == "3":
+                break
+            else:
+                print("Неверный выбор. Попробуйте снова.")):
+
