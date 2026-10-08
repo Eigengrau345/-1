@@ -1,0 +1,187 @@
+from __future__ import annotations 
+from typing import List 
+
+# ===== Составляющие =====
+class Order():
+    def __init__(self, order_id, client_name, adress: Adress, price, delivery_method: DeliveryMethod = None, 
+                 courier: Courier = None, order_status: str = ""):
+        self.order_id = order_id
+        self.client_name = client_name
+        self.adress = adress
+        self.price = price
+        self.delivery_method = delivery_method
+        self.courier = courier
+        self.order_status = order_status
+        self.items: List[Item] = []
+
+    def add_item(self, item: Item): 
+        self.item = item
+        self.item.name = input("Введите название товара: ")
+        self.item.price = float(input("Введите цену товара: "))
+        self.item.quantity = int(input("Введите количество товара: "))
+        self.price += self.item.price * self.item.quantity
+        self.items.append(item)
+
+    def print_order(self):        
+        print(f"==== Заказ {self.order_id} ====") 
+        print(f"Клиент: {self.client_name}\nАдрес: {self.adress.name}\nДоставка: {self.delivery_method.name}")   
+        if self.courier:
+            print(f"Курьер: {self.courier.name}")
+        print(f"Статус: {self.order_status}")
+            
+        print("\nСписок товаров:")
+        for item in self.items:
+            print(f"\t- {item.name} | Цена: {item.price} з. | Количество: {item.quantity}")
+        print(f"Итоговая стоимость: {self.price} з.")
+
+    def count_price(self):
+            if self.delivery_method and self.delivery_method.delivery_method == "2":
+                self.price += 100 * self.adress.distant
+            elif self.delivery_method and self.delivery_method.delivery_method == "3":
+                self.price += 200 * self.adress.distant
+            
+
+class Client():
+    def __init__(self, client_id, name, adress):
+        self.client_id = client_id
+        self.name = name
+        # self.adress = adress
+
+class Courier():
+    def __init__(self, courier_id, name):
+        self.courier_id = courier_id
+        self.name = name
+        self.is_busy = False
+
+class Item():
+    def __init__(self, name, price, quantity):
+        self.name = name
+        self.quantity = quantity
+        self.price = price
+
+class Adress(): 
+    def __init__(self, name, distant):
+        self.name = name
+        self.distant = distant
+
+
+# ===== Доставка ====== 
+class DeliveryMethod():
+    def __init__(self, delivery_method="1", service: OrderService = None, name="Самовывоз"):
+        self.delivery_method = delivery_method
+        self.service = service
+        self.name = name
+
+    def choose_method(self):
+        self.delivery_method = input("Введите способ доставки(номер): \n1. Самовывоз\n2. Курьер\n3. Экспресс: ")
+        
+        if self.delivery_method == "1": self.name = "Самовывоз"
+        elif self.delivery_method == "2": self.name = "Курьер"
+        elif self.delivery_method == "3": self.name = "Экспресс"
+
+        if self.need_courier():
+            return self.assign_courier()
+        return None
+                 
+    def need_courier(self):
+        if self.delivery_method == "2" or self.delivery_method == "3":
+            return True
+        return False
+
+    def assign_courier(self): 
+        if self.service and self.service.couriers:
+            for courier in self.service.couriers:
+                if not courier.is_busy:
+                    courier.is_busy = True
+                    print(f"Курьер {courier.name} назначен для доставки.")
+                    return courier
+        print("Нет доступных курьеров на данный момент.")
+        return None
+
+
+# ====== Сервисы ======
+class OrderService():
+    def __init__(self):
+        self.orders: List[Order] = []
+        self.couriers: List[Courier] = [Courier(1, "Пчелк"), Courier(2, "Нюхлязавр"), Courier(3, "Портер")] 
+        self.adresses: List[Adress] = [Adress("Куб", 1.2), Adress("Дуб", 2), Adress("ТЦ", 1)]
+
+    def create_order(self):
+        order = Order(len(self.orders) + 1, "", Adress("", 0), 0, None, None, "")
+        print("==== Создание нового заказа ===")
+        order.client_name = input("Введите имя клиента: ")
+
+        # добавление вещей
+        while True:
+            item = Item("", 0, 0)
+            order.add_item(item)
+            continue_adding = input("Хотите добавить еще один товар? (enter или no): ")
+            if continue_adding == "no":
+                break
+
+        # доставка        
+        delivery = DeliveryMethod(service=self)
+        courier = delivery.choose_method()
+        order.delivery_method = delivery
+        order.courier = courier
+
+        is_adress = False
+        if courier != None:
+            print("Адреса для доставки:")
+            for adress in self.adresses:
+                print(f" - {adress.name}")
+
+            while is_adress == False:
+                order.adress.name = input("Выберите адрес доставки из доступных: ")
+                for adress in self.adresses: 
+                    if adress.name == order.adress.name:
+                        order.adress = adress
+                        is_adress = True
+                        break
+                if is_adress == False:
+                    print("Выбранный адрес недоступен. Попробуйте снова.")
+
+        # расчет итоговой цены
+        order.count_price()
+
+        order.order_status = "Создан"
+        self.orders.append(order)
+        print(f"Заказ {order.order_id} создан.") 
+        printorder = input("Хотите распечатать заказ? (yes/enter): ")
+        if printorder == "yes":
+            order.print_order()
+
+    def view_orders(self):
+        if not self.orders:
+            print("Нет заказов.")
+            return
+        for order in self.orders:
+            order.print_order()
+
+
+# ====== Интерфейс ======
+class Interface():
+    def __init__(self, service: OrderService):
+        self.service = service
+
+    def main(self):
+        while True:
+            print("======================")
+            print("\n1. Создать заказ")
+            print("2. Просмотреть заказы")
+            print("3. Выйти")
+            choice = input("Выберите действие: ")
+
+            if choice == "1":
+                self.service.create_order()
+            elif choice == "2":
+                self.service.view_orders()
+            elif choice == "3":
+                break
+            else:
+                print("Неверный выбор. Попробуйте снова.")
+
+if __name__ == "__main__":
+    service = OrderService()
+    interface = Interface(service)
+    interface.main()
